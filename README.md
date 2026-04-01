@@ -1,13 +1,6 @@
 # HubSpot Weekly Task Digest Service
 
-Production-ready Node.js service that fetches pending HubSpot tasks for one owner, enriches each with associated deal and note context, and sends a weekly digest email using **Resend**.
-
-## What changed
-
-- Scheduling now uses **cron-job.org** (external scheduler) instead of in-process `node-cron`.
-- The app exposes a secure webhook endpoint (`POST /jobs/weekly-digest`) for cron-job.org to call.
-- Email delivery is now done via **Resend API**.
-- The user chooses weekly send day/time directly inside cron-job.org.
+Production-ready Node.js service that fetches pending HubSpot tasks for one owner, enriches each with associated deal and note context, and sends a weekly digest email.
 
 ## Features
 
@@ -18,7 +11,7 @@ Production-ready Node.js service that fetches pending HubSpot tasks for one owne
 - Groups tasks by deal.
 - Generates HTML email with per-task dividers (`<hr>`) and no divider after the last task.
 - Uses concurrency limiting (`p-limit`), caching for deals/notes, and retry with exponential backoff for `429` and `5xx` errors.
-- Supports one-off execution mode for testing (`npm run run-once`).
+- Runs automatically every Monday at 9 AM using `node-cron`.
 
 ## Project structure
 
@@ -41,16 +34,14 @@ src/
 
 ## Environment variables
 
-Copy `.env.example` to `.env` and set:
+Copy `.env.example` to `.env` and set values:
 
 - `PRIVATE_APP_TOKEN` **or** `HUBSPOT_API_KEY`
 - `USER_ID`
 - `EMAIL_TO`
-- `EMAIL_FROM` (must be a verified sender/domain in Resend)
-- `RESEND_API_KEY`
-- `DIGEST_TRIGGER_SECRET` (shared secret checked by webhook)
-- `PORT` (optional, default `3000`)
-- Optional: `HUBSPOT_BASE_URL`, `MAX_CONCURRENCY`, `MAX_RETRIES`, `REQUEST_TIMEOUT_MS`
+- `EMAIL_FROM`
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`
+- Optional: `HUBSPOT_BASE_URL`, `MAX_CONCURRENCY`, `MAX_RETRIES`, `REQUEST_TIMEOUT_MS`, `CRON_SCHEDULE`
 
 ## Run locally
 
@@ -59,39 +50,27 @@ Copy `.env.example` to `.env` and set:
    npm install
    ```
 2. Configure `.env`.
-3. Test once immediately:
+3. Run once now:
    ```bash
    npm run run-once
    ```
-4. Start server:
+4. Run scheduler service:
    ```bash
    npm start
    ```
 
-## cron-job.org setup (user chooses weekly time)
-
-1. Deploy this service (locally tunneled or hosted) so cron-job.org can reach it.
-2. In cron-job.org, create a new cronjob:
-   - **Method**: `POST`
-   - **URL**: `https://YOUR_HOST/jobs/weekly-digest?secret=YOUR_DIGEST_TRIGGER_SECRET`
-   - **Schedule**: choose **weekly**, then select your desired day/time/timezone.
-3. Save and enable the job.
-
-> This is how the user picks their weekly delivery schedule.
-
 ## Deploy on Render
 
-1. Push repository to GitHub.
-2. In Render, create a **Web Service**.
+1. Push this repository to GitHub.
+2. In Render, create a **Web Service** from the repo.
 3. Configure:
    - **Runtime**: Node
    - **Build Command**: `npm install`
    - **Start Command**: `npm start`
-4. Add all `.env.example` vars in Render environment settings.
-5. Deploy and copy Render URL.
-6. Point cron-job.org webhook URL to: `https://<render-service-url>/jobs/weekly-digest?secret=<DIGEST_TRIGGER_SECRET>`.
+4. Add all environment variables from `.env.example` in Render dashboard.
+5. Deploy.
 
-## API endpoints
+### Notes for Render
 
-- `GET /health` → health check.
-- `POST /jobs/weekly-digest` → triggers digest send (requires secret via query `secret` or header `x-digest-secret`).
+- Keep the service running continuously so `node-cron` can trigger at Monday 9 AM.
+- Optionally set timezone at platform level if you need non-UTC scheduling.

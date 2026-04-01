@@ -1,22 +1,23 @@
-const axios = require('axios');
+const nodemailer = require('nodemailer');
 const { config } = require('../config');
 
 class EmailService {
   constructor() {
-    this.client = axios.create({
-      baseURL: 'https://api.resend.com',
-      timeout: 15000,
-      headers: {
-        Authorization: `Bearer ${config.resendApiKey}`,
-        'Content-Type': 'application/json'
+    this.transporter = nodemailer.createTransport({
+      host: config.smtpHost,
+      port: config.smtpPort,
+      secure: config.smtpSecure,
+      auth: {
+        user: config.smtpUser,
+        pass: config.smtpPass
       }
     });
   }
 
   async sendDigestEmail(html) {
-    await this.client.post('/emails', {
+    await this.transporter.sendMail({
       from: config.emailFrom,
-      to: [config.emailTo],
+      to: config.emailTo,
       subject: 'Weekly HubSpot Task Digest',
       html
     });
