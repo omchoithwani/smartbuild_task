@@ -1,4 +1,4 @@
-const cron = require('node-cron');
+const express = require('express');
 const { config, validateConfig } = require('./config');
 const { logger } = require('./utils/logger');
 const { HubSpotClient } = require('./services/hubspotClient');
@@ -25,6 +25,11 @@ async function buildAndRunDigest() {
   await digestService.runWeeklyDigest(new Date());
 }
 
+function isAuthorizedTrigger(req) {
+  const provided = req.get('x-digest-secret') || req.query.secret;
+  return provided && provided === config.digestTriggerSecret;
+}
+
 async function start() {
   try {
     validateConfig();
@@ -34,13 +39,30 @@ async function start() {
       return;
     }
 
-    logger.info(`Scheduling weekly digest with cron: ${config.cronSchedule}`);
-    cron.schedule(config.cronSchedule, async () => {
+    const app = express();
+    app.use(express.json());
+
+    app.get('/health', (_req, res) => {
+      res.status(200).json({ ok: true });
+    });
+
+    app.post('/jobs/weekly-digest', async (req, res) => {
+      if (!isAuthorizedTrigger(req)) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
       try {
         await buildAndRunDigest();
+        return res.status(200).json({ status: 'Digest sent' });
       } catch (error) {
-        logger.error('Scheduled digest failed', { message: error.message });
+        logger.error('Digest trigger failed', { message: error.message });
+        return res.status(500).json({ error: 'Digest failed' });
       }
+    });
+
+    app.listen(config.port, () => {
+      logger.info(`Server listening on port ${config.port}`);
+      logger.info('Configure cron-job.org to call POST /jobs/weekly-digest weekly at your chosen day/time.');
     });
   } catch (error) {
     logger.error('Failed to start service', { message: error.message });

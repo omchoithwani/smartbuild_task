@@ -14,15 +14,12 @@ const config = {
   userId: process.env.USER_ID,
   emailTo: process.env.EMAIL_TO,
   emailFrom: process.env.EMAIL_FROM,
-  smtpHost: process.env.SMTP_HOST,
-  smtpPort: parseIntOrDefault(process.env.SMTP_PORT, 587),
-  smtpSecure: String(process.env.SMTP_SECURE || 'false').toLowerCase() === 'true',
-  smtpUser: process.env.SMTP_USER,
-  smtpPass: process.env.SMTP_PASS,
+  resendApiKey: process.env.RESEND_API_KEY,
+  port: parseIntOrDefault(process.env.PORT, 3000),
+  digestTriggerSecret: process.env.DIGEST_TRIGGER_SECRET,
   maxConcurrency: parseIntOrDefault(process.env.MAX_CONCURRENCY, 5),
   maxRetries: parseIntOrDefault(process.env.MAX_RETRIES, 5),
-  requestTimeoutMs: parseIntOrDefault(process.env.REQUEST_TIMEOUT_MS, 15000),
-  cronSchedule: process.env.CRON_SCHEDULE || '0 9 * * 1'
+  requestTimeoutMs: parseIntOrDefault(process.env.REQUEST_TIMEOUT_MS, 15000)
 };
 
 function validateConfig() {
@@ -32,9 +29,8 @@ function validateConfig() {
   if (!config.userId) missing.push('USER_ID');
   if (!config.emailTo) missing.push('EMAIL_TO');
   if (!config.emailFrom) missing.push('EMAIL_FROM');
-  if (!config.smtpHost) missing.push('SMTP_HOST');
-  if (!config.smtpUser) missing.push('SMTP_USER');
-  if (!config.smtpPass) missing.push('SMTP_PASS');
+  if (!config.resendApiKey) missing.push('RESEND_API_KEY');
+  if (!config.digestTriggerSecret) missing.push('DIGEST_TRIGGER_SECRET');
 
   if (missing.length) {
     throw new Error(`Missing environment variables: ${missing.join(', ')}`);
