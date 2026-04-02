@@ -94,4 +94,5 @@ Copy `.env.example` to `.env` and set:
 ## API endpoints
 
 - `GET /health` → health check.
+- `GET /jobs/weekly-digest` → returns `405` with guidance to use POST.
 - `POST /jobs/weekly-digest` → triggers digest send (requires secret via query `secret` or header `x-digest-secret`).

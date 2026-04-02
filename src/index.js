@@ -46,6 +46,13 @@ async function start() {
       res.status(200).json({ ok: true });
     });
 
+    app.get('/jobs/weekly-digest', (_req, res) => {
+      res.status(405).json({
+        error: 'Method Not Allowed',
+        message: 'Use POST /jobs/weekly-digest with ?secret=... or x-digest-secret header.'
+      });
+    });
+
     app.post('/jobs/weekly-digest', async (req, res) => {
       if (!isAuthorizedTrigger(req)) {
         return res.status(401).json({ error: 'Unauthorized' });
